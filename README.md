@@ -38,6 +38,7 @@ It should be available via `localhost:3000`.
 1. [Wavtools](#wavtools)
    1. [WavRecorder quickstart](#wavrecorder-quickstart)
    1. [WavStreamPlayer quickstart](#wavstreamplayer-quickstart)
+1. [Creating the Project from Scratch](#creating-the-project-from-scratch)
 1. [Acknowledgements and contact](#acknowledgements-and-contact)
 
 # Using the console
@@ -349,6 +350,158 @@ const trackOffset = await wavStreamPlayer.interrupt();
 trackOffset.trackId; // "my-track"
 trackOffset.offset; // sample number
 trackOffset.currentTime; // time in track
+```
+
+# Creating the Project from Scratch
+
+If you want to create this project from scratch, follow these steps:
+
+## Prerequisites
+
+- Node.js (v16 or higher)
+- npm (Node Package Manager)
+- An OpenAI API key with access to the Realtime API
+
+## Step 1: Create a New React Project
+
+```bash
+# Create a new React project with TypeScript
+npx create-react-app openai-realtime-console --template typescript
+
+# Navigate to the project directory
+cd openai-realtime-console
+```
+
+## Step 2: Install Dependencies
+
+```bash
+# Install required dependencies
+npm install @openai/realtime-api-beta@github:openai/openai-realtime-api-beta
+npm install react-feather leaflet react-leaflet @types/leaflet
+npm install dotenv sass ws
+```
+
+## Step 3: Set Up Project Structure
+
+Create the following directory structure:
+
+```
+openai-realtime-console/
+├── public/
+├── relay-server/
+├── src/
+│   ├── lib/
+│   │   └── wavtools/
+│   ├── components/
+│   ├── styles/
+│   └── types/
+├── .env.local
+└── tsconfig.json
+```
+
+## Step 4: Configure TypeScript
+
+Create or update `tsconfig.json` with the following configuration:
+
+```json
+{
+  "compilerOptions": {
+    "target": "es5",
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noFallthroughCasesInSwitch": true,
+    "module": "esnext",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "jsx": "react-jsx"
+  },
+  "include": ["src"]
+}
+```
+
+## Step 5: Environment Setup
+
+Create a `.env.local` file in the root directory:
+
+```env
+REACT_APP_OPENAI_API_KEY=your_api_key_here
+```
+
+Add `.env.local` to your `.gitignore` file to keep your API key secure.
+
+## Step 6: Set Up the Relay Server
+
+1. Create `relay-server/index.js` for WebSocket relay functionality
+2. Implement the relay server logic for handling WebSocket connections
+
+## Step 7: Implement Core Features
+
+1. Set up the wavtools library in `src/lib/wavtools/`
+2. Create React components in `src/components/`
+3. Implement styles in `src/styles/`
+4. Add TypeScript types in `src/types/`
+
+## Step 8: Development Workflow
+
+1. Start the development server:
+```bash
+npm start
+```
+
+2. Start the relay server (in a separate terminal):
+```bash
+npm run relay
+```
+
+## Step 9: Building for Production
+
+```bash
+# Create a production build
+npm run build
+
+# Create a distributable zip (excluding node_modules and development files)
+npm run zip
+```
+
+## Project Scripts
+
+The following npm scripts are available:
+
+- `npm start`: Start the development server
+- `npm test`: Run tests
+- `npm run build`: Create a production build
+- `npm run eject`: Eject from create-react-app
+- `npm run zip`: Create a distributable zip file
+- `npm run relay`: Start the relay server
+
+## Additional Configuration
+
+### ESLint Configuration
+
+Create `.eslintrc.json`:
+
+```json
+{
+  "extends": ["react-app", "react-app/jest"]
+}
+```
+
+### Prettier Configuration
+
+Create `.prettierrc`:
+
+```json
+{
+  "singleQuote": true,
+  "trailingComma": "es5"
+}
 ```
 
 # Acknowledgements and contact

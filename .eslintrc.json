@@ -1,4 +1,8 @@
 {
+  "extends": [
+    "react-app",
+    "react-app/jest"
+  ],
   "parserOptions": {
     "sourceType": "module"
   },
