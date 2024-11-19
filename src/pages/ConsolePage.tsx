@@ -648,7 +648,11 @@ export function ConsolePage() {
           <div className="content-block">
             <div className="content-block-title">Postcards</div>
             <div className="content-block-body">
-              <PostcardList onPostcardsChange={handlePostcardsChange} />
+              <PostcardList 
+                onPostcardsChange={handlePostcardsChange}
+                client={clientRef.current}
+                isConnected={isConnected}
+              />
             </div>
           </div>
           <div className="content-block events">
