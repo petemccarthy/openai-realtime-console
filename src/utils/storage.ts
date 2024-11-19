@@ -1,6 +1,11 @@
 import { supabase } from './supabase';
 
-export async function uploadImageToStorage(imageUrl: string, message: string): Promise<string> {
+interface UploadResult {
+  storageImageUrl?: string;
+  error?: Error;
+}
+
+export async function uploadImageToStorage(imageUrl: string, message: string): Promise<UploadResult> {
   try {
     console.log('Starting image upload process...');
     console.log('Replicate URL:', imageUrl);
@@ -8,7 +13,7 @@ export async function uploadImageToStorage(imageUrl: string, message: string): P
     // Fetch the image from Replicate
     const response = await fetch(imageUrl);
     if (!response.ok) {
-      throw new Error(`Failed to fetch image from Replicate: ${response.statusText}`);
+      return { error: new Error(`Failed to fetch image from Replicate: ${response.statusText}`) };
     }
     const imageBlob = await response.blob();
     console.log('Successfully fetched image, size:', imageBlob.size, 'bytes');
@@ -21,7 +26,7 @@ export async function uploadImageToStorage(imageUrl: string, message: string): P
 
     // Upload to Supabase Storage
     console.log('Starting Supabase upload...');
-    const { data, error } = await supabase.storage
+    const { data: uploadData, error: uploadError } = await supabase.storage
       .from('postcard_images')
       .upload(filename, imageBlob, {
         contentType: 'image/jpeg',
@@ -29,16 +34,16 @@ export async function uploadImageToStorage(imageUrl: string, message: string): P
         upsert: true
       });
 
-    if (error) {
-      console.error('Supabase storage upload error:', error);
-      throw error;
+    if (uploadError) {
+      console.error('Supabase storage upload error:', uploadError);
+      return { error: uploadError };
     }
-    console.log('Successfully uploaded to Supabase, path:', data.path);
+    console.log('Successfully uploaded to Supabase, path:', uploadData.path);
 
     // Get the public URL
     const urlResult = supabase.storage
       .from('postcard_images')
-      .getPublicUrl(data.path);
+      .getPublicUrl(uploadData.path);
     
     console.log('URL Result:', urlResult);
     const publicUrl = urlResult.data.publicUrl;
@@ -55,9 +60,9 @@ export async function uploadImageToStorage(imageUrl: string, message: string): P
       console.warn('URL verification failed:', e);
     }
 
-    return publicUrl;
+    return { storageImageUrl: publicUrl };
   } catch (error) {
     console.error('Error in uploadImageToStorage:', error);
-    throw error;
+    return { error: error instanceof Error ? error : new Error('Unknown error during upload') };
   }
 }

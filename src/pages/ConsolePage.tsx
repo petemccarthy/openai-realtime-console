@@ -11,6 +11,8 @@ import { Map } from '../components/Map';
 import { generatePostcardImage } from '../utils/replicate';
 import { supabase } from '../utils/supabase';
 import { uploadImageToStorage } from '../utils/storage';
+import { PostcardList } from '../components/PostcardList';
+import { Postcard as DbPostcard } from '../hooks/usePostcards';
 import './ConsolePage.scss';
 
 /**
@@ -46,13 +48,15 @@ interface Coordinates {
 /**
  * Type for result from get_postcard() function call
  */
-interface Postcard {
+interface GeneratedPostcard {
   message: string;
   blurb?: string;
-  imageUrl?: string;
+  image_url?: string;
   status?: 'generating' | 'complete' | 'error';
   error?: string;
 }
+
+type DisplayPostcard = GeneratedPostcard | DbPostcard;
 
 /**
  * Type for all event logs
@@ -62,6 +66,10 @@ interface RealtimeEvent {
   source: 'client' | 'server';
   count?: number;
   event: { [key: string]: any };
+}
+
+interface GetPostcardParams {
+  message: string;
 }
 
 const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
@@ -137,7 +145,8 @@ export function ConsolePage() {
     lng: -122.418137,
   });
   const [marker, setMarker] = useState<Coordinates | null>(null);
-  const [postcard, setPostcard] = useState<Postcard | null>(null);
+  const [postcard, setPostcard] = useState<GeneratedPostcard | null>(null);
+  const [latestPostcard, setLatestPostcard] = useState<DisplayPostcard | null>(null);
 
   /**
    * Utility for formatting the timing of logs
@@ -198,8 +207,7 @@ export function ConsolePage() {
     client.sendUserMessageContent([
       {
         type: `input_text`,
-        text: `Hello!`,
-        // text: `For testing purposes, I want you to list ten car brands. Number each item, e.g. "one (or whatever number you are one): the item name".`
+        text: `Hello! I'm here to help you generate vintage-style postcards and check the weather. You can use get_postcard() to create postcards of any location, and get_weather() to check the weather. What would you like to do?`,
       },
     ]);
 
@@ -472,75 +480,71 @@ export function ConsolePage() {
     client.addTool(
       {
         name: 'get_postcard',
-        description: 'Generates a vintage-style postcard image with a fun blurb about the location.',
+        description: 'Generates a vintage-style postcard image of a location. Only ask for the location name, do not ask for or include any messages, recipients, or other information.',
         parameters: {
           type: 'object',
           properties: {
             message: {
               type: 'string',
-              description: 'Location or scene to generate a vintage postcard of',
+              description: 'Location name to generate a vintage postcard of (e.g. "Paris" or "New York City")',
             }
           },
           required: ['message'],
         },
       },
-      async ({ message }: { message: string }) => {
+      async ({ message }: GetPostcardParams) => {
         try {
-          console.log('Starting postcard generation with:', { message });
-          
           // Generate a fun blurb about the location
           const blurb = `Greetings from ${message}! Where adventure meets nostalgia in this picturesque destination.`;
           
           // Set postcard with loading state
-          const initialPostcard: Postcard = { 
+          const initialPostcard: GeneratedPostcard = { 
             message,
             blurb, 
             status: 'generating' 
           };
           setPostcard(initialPostcard);
           
-          // Generate an image based on the message
-          const replicateImageUrl = await generatePostcardImage(message);
-          console.log('Generated Replicate URL:', replicateImageUrl);
-
-          // Upload to Supabase Storage and get public URL
-          const storageImageUrl = await uploadImageToStorage(replicateImageUrl, message);
-          console.log('Uploaded to Supabase Storage:', storageImageUrl);
+          // Generate the image
+          const imageUrl = await generatePostcardImage(message);
+          if (!imageUrl) {
+            throw new Error('Failed to generate image');
+          }
           
-          // Store the postcard in Supabase Database
-          const { data: storedPostcard, error: dbError } = await supabase
+          // Upload to storage
+          const result = await uploadImageToStorage(imageUrl, message);
+          if (result.error || !result.storageImageUrl) {
+            throw new Error(`Failed to upload image: ${result.error?.message || 'Unknown error'}`);
+          }
+          
+          // Store in database
+          const { error: dbError } = await supabase
             .from('postcards')
             .insert([
-              {
-                message,
-                image_url: storageImageUrl,
-                status: 'draft',
-              }
-            ])
-            .select()
-            .single();
-
+              { message, image_url: result.storageImageUrl }
+            ]);
+          
           if (dbError) {
             throw new Error(`Failed to store postcard: ${dbError.message}`);
           }
           
           // Update the postcard state with the completed data
-          const updatedPostcard: Postcard = { 
+          const updatedPostcard: GeneratedPostcard = { 
             message,
             blurb,
-            imageUrl: storageImageUrl, 
+            image_url: result.storageImageUrl, 
             status: 'complete' 
           };
           console.log('Updating postcard with:', updatedPostcard);
           setPostcard(updatedPostcard);
           
-          // Return in the format the AI expects
+          // Return success
           return {
             success: true,
             postcard: {
               message,
               blurb,
-              imageUrl: storageImageUrl,
+              image_url: result.storageImageUrl,
               status: 'complete'
             }
           };
@@ -548,18 +552,16 @@ export function ConsolePage() {
           console.error('Error in get_postcard:', error);
           
           // Update postcard state with error
-          const errorPostcard: Postcard = { 
+          const errorPostcard: GeneratedPostcard = { 
             message,
             blurb: `Greetings from ${message}!`,
             status: 'error', 
             error: error.message || 'Failed to generate postcard' 
           };
-          console.log('Setting error state:', errorPostcard);
           setPostcard(errorPostcard);
           
-          return { 
+          return {
             success: false,
-            postcard: errorPostcard,
             error: error.message || 'Failed to generate postcard'
           };
         }
@@ -611,6 +613,14 @@ export function ConsolePage() {
     };
   }, []);
 
+  const handlePostcardsChange = (postcards: DbPostcard[]) => {
+    if (postcards.length > 0) {
+      setLatestPostcard(postcards[0]);
+    } else {
+      setLatestPostcard(null);
+    }
+  };
+
   /**
    * Render the application
    */
@@ -635,6 +645,12 @@ export function ConsolePage() {
       </div>
       <div className="content-main">
         <div className="content-logs">
+          <div className="content-block">
+            <div className="content-block-title">Postcards</div>
+            <div className="content-block-body">
+              <PostcardList onPostcardsChange={handlePostcardsChange} />
+            </div>
+          </div>
           <div className="content-block events">
             <div className="content-block-title">events</div>
             <div className="content-block-body" ref={eventsScrollRef}>
@@ -805,82 +821,80 @@ export function ConsolePage() {
         <div className="content-right">
           <div className="content-block postcard">
             <div className="content-block-title">get_postcard()</div>
-            <div className="content-block-title bottom">
-              {postcard ? (
-                <>
-                  Message: {postcard.message}
-                </>
-              ) : (
-                'not yet created'
-              )}
-            </div>
-            <div className="content-block-body full">
-              {postcard && (
-                <div className="postcard-content">
-                  {(() => {
-                    console.log('Rendering postcard:', postcard);
-                    
-                    if (postcard.status === 'generating') {
-                      return <div className="generating-message">Generating postcard image...</div>;
-                    }
-                    
-                    if (postcard.status === 'error') {
-                      return <div className="error-message">{postcard.error}</div>;
-                    }
-                    
-                    return (
-                      <>
-                        {postcard.imageUrl && (
-                          <div className="postcard-image-container" style={{ marginBottom: '1rem' }}>
-                            <img 
-                              src={postcard.imageUrl} 
-                              alt="Generated postcard"
-                              style={{ 
-                                maxWidth: '100%', 
-                                height: 'auto',
-                                border: '1px solid #ddd',
-                                borderRadius: '4px',
-                                display: 'block'
-                              }}
-                              onError={(e) => {
-                                console.error('Error loading image:', e);
-                                const img = e.target as HTMLImageElement;
-                                console.log('Failed URL:', img.src);
-
-                                // Try different URL formats
-                                if (img.src.includes('/object/public/')) {
-                                  // Try storage/v1 format
-                                  const newUrl = img.src.replace('/object/public/', '/storage/v1/object/public/');
-                                  console.log('Trying alternative URL format:', newUrl);
-                                  img.src = newUrl;
-                                } else if (img.src.includes('/storage/v1/object/public/')) {
-                                  // Try signed URL
-                                  const bucketPath = img.src.split('/postcard_images/')[1];
-                                  if (bucketPath) {
-                                    console.log('Trying to get signed URL for:', bucketPath);
-                                    supabase.storage
-                                      .from('postcard_images')
-                                      .createSignedUrl(bucketPath, 60)
-                                      .then(({ data }) => {
-                                        if (data?.signedUrl) {
-                                          console.log('Got signed URL:', data.signedUrl);
-                                          img.src = data.signedUrl;
-                                        }
-                                      })
-                                      .catch(err => console.error('Failed to get signed URL:', err));
-                                  }
-                                }
-                              }}
-                            />
+            <div className="content-block-body">
+              <div className="postcard-preview">
+                {postcard ? (
+                  <div className="postcard-content">
+                    {(() => {
+                      if (postcard.status === 'generating') {
+                        return (
+                          <div className="generating-message">
+                            <div className="loading-dots">
+                              <div className="dot"></div>
+                              <div className="dot"></div>
+                              <div className="dot"></div>
+                            </div>
+                            <div className="postcard-placeholder"></div>
+                            <div className="location-text">{postcard.message}</div>
                           </div>
-                        )}
-                        <div className="message">{postcard.message}</div>
-                        <div className="blurb">{postcard.blurb}</div>
-                      </>
-                    );
-                  })()}
-                </div>
-              )}
+                        );
+                      }
+                      
+                      if (postcard.status === 'error') {
+                        return <div className="error-message">{postcard.error}</div>;
+                      }
+                      
+                      return (
+                        <>
+                          {postcard.image_url && (
+                            <div className="postcard-image-container">
+                              <img 
+                                src={postcard.image_url} 
+                                alt="Generated postcard"
+                                onError={(e) => {
+                                  console.error('Error loading image:', e);
+                                  const img = e.target as HTMLImageElement;
+                                  console.log('Failed URL:', img.src);
+
+                                  if (img.src.includes('/object/public/')) {
+                                    const newUrl = img.src.replace('/object/public/', '/storage/v1/object/public/');
+                                    console.log('Trying alternative URL format:', newUrl);
+                                    img.src = newUrl;
+                                  } else if (img.src.includes('/storage/v1/object/public/')) {
+                                    const bucketPath = img.src.split('/postcard_images/')[1];
+                                    if (bucketPath) {
+                                      console.log('Trying to get signed URL for:', bucketPath);
+                                      supabase.storage
+                                        .from('postcard_images')
+                                        .createSignedUrl(bucketPath, 60)
+                                        .then(({ data }) => {
+                                          if (data?.signedUrl) {
+                                            console.log('Got signed URL:', data.signedUrl);
+                                            img.src = data.signedUrl;
+                                          }
+                                        })
+                                        .catch(console.error);
+                                    }
+                                  }
+                                }}
+                              />
+                            </div>
+                          )}
+                          <div className="message">{postcard.message}</div>
+                          {postcard.blurb && (
+                            <div className="blurb">{postcard.blurb}</div>
+                          )}
+                        </>
+                      );
+                    })()}
+                  </div>
+                ) : (
+                  <div className="generating-message">
+                    <div className="postcard-placeholder"></div>
+                    <div className="location-text">No postcard yet</div>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
           <div className="content-block map">

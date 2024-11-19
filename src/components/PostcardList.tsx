@@ -1,41 +1,25 @@
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { usePostcards, Postcard } from '../hooks/usePostcards';
 
-export const PostcardList: React.FC = () => {
-  const { loading, error, getPostcards, createPostcard, deletePostcard } = usePostcards();
-  const [postcards, setPostcards] = useState<Postcard[]>([]);
-  const [newMessage, setNewMessage] = useState('');
-  const [newImageUrl, setNewImageUrl] = useState('');
+interface PostcardListProps {
+  onPostcardsChange?: (postcards: Postcard[]) => void;
+  onPostcardClick?: (postcard: Postcard) => void;
+}
 
-  useEffect(() => {
-    loadPostcards();
-  }, []);
+export const PostcardList: React.FC<PostcardListProps> = ({ onPostcardsChange, onPostcardClick }) => {
+  const { loading, error, postcards, deletePostcard } = usePostcards();
 
-  const loadPostcards = async () => {
-    const data = await getPostcards();
-    setPostcards(data);
-  };
-
-  const handleCreate = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newMessage || !newImageUrl) return;
-
-    const postcard = await createPostcard({
-      message: newMessage,
-      image_url: newImageUrl
-    });
-
-    if (postcard) {
-      setPostcards([postcard, ...postcards]);
-      setNewMessage('');
-      setNewImageUrl('');
-    }
-  };
+  // Notify parent of postcard changes
+  React.useEffect(() => {
+    console.log('Postcards updated:', postcards);
+    onPostcardsChange?.(postcards);
+  }, [postcards, onPostcardsChange]);
 
   const handleDelete = async (id: string) => {
+    console.log('Deleting postcard:', id);
     const success = await deletePostcard(id);
     if (success) {
-      setPostcards(postcards.filter(p => p.id !== id));
+      console.log('Postcard deleted successfully');
     }
   };
 
@@ -43,31 +27,42 @@ export const PostcardList: React.FC = () => {
   if (error) return <div>Error: {error}</div>;
 
   return (
-    <div>
-      <form onSubmit={handleCreate}>
-        <input
-          type="text"
-          value={newMessage}
-          onChange={(e) => setNewMessage(e.target.value)}
-          placeholder="Enter message"
-        />
-        <input
-          type="text"
-          value={newImageUrl}
-          onChange={(e) => setNewImageUrl(e.target.value)}
-          placeholder="Enter image URL"
-        />
-        <button type="submit">Create Postcard</button>
-      </form>
-
-      <div>
-        {postcards.map((postcard) => (
-          <div key={postcard.id} style={{ marginBottom: '1rem' }}>
-            <img src={postcard.image_url} alt="Postcard" style={{ maxWidth: '200px' }} />
-            <p>{postcard.message}</p>
-            <button onClick={() => handleDelete(postcard.id)}>Delete</button>
-          </div>
-        ))}
+    <div className="content-block postcards">
+      <div className="content-block-title">postcards</div>
+      <div className="content-block-body">
+        <div className="postcards-grid">
+          {postcards.map((postcard, index) => (
+            <div
+              key={index}
+              className="postcard-item"
+              onClick={() => onPostcardClick?.(postcard)}
+            >
+              {postcard.image_url && (
+                <img src={postcard.image_url} alt={postcard.message} />
+              )}
+              <div className="postcard-info">
+                <div className="location">{postcard.message}</div>
+                {postcard.blurb && (
+                  <div className="blurb">{postcard.blurb}</div>
+                )}
+                <button 
+                  onClick={() => handleDelete(postcard.id)}
+                  style={{
+                    backgroundColor: '#ff4444',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    padding: '0.5rem',
+                    cursor: 'pointer',
+                    marginTop: 'auto'
+                  }}
+                >
+                  Delete
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
