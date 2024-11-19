@@ -39,9 +39,7 @@ app.use(cors());
 app.use(express.json());
 
 // Initialize Replicate client
-const replicate = new Replicate({
-  auth: REPLICATE_API_TOKEN,
-});
+const replicate = new Replicate();
 
 // Create endpoint for image generation
 app.post('/api/generate-image', async (req, res) => {
@@ -54,41 +52,33 @@ app.post('/api/generate-image', async (req, res) => {
 
     console.log('Generating image for prompt:', prompt);
 
-    const prediction = await replicate.predictions.create({
-      version: "8beff3369e81422112d93b89ca01426147de542cd4684c244b673b105188fe5f",
-      input: {
-        prompt,
-        width: 768,
-        height: 512,
-        num_outputs: 1,
-        scheduler: "K_EULER",
-        num_inference_steps: 50,
-        guidance_scale: 7.5,
-        refine: "expert_ensemble_refiner",
-        high_noise_frac: 0.8,
-      }
-    });
+    const input = {
+      prompt,
+      aspect_ratio: "16:9"
+    };
 
-    console.log('Created prediction:', prediction);
+    const output = await replicate.run(
+      "ideogram-ai/ideogram-v2",
+      { input }
+    );
 
-    // Wait for the prediction to complete
-    let imageUrl;
-    while (!imageUrl) {
-      const result = await replicate.predictions.get(prediction.id);
-      console.log('Prediction status:', result.status);
-      
-      if (result.status === 'succeeded') {
-        imageUrl = result.output[0];
-        console.log('Generated image URL:', imageUrl);
-        break;
-      } else if (result.status === 'failed') {
-        throw new Error('Image generation failed');
-      }
-      
-      // Wait a bit before checking again
-      await new Promise(resolve => setTimeout(resolve, 1000));
+    // Convert the stream to a buffer
+    const chunks = [];
+    const reader = output.getReader();
+    
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      chunks.push(value);
     }
 
+    const buffer = Buffer.concat(chunks);
+    
+    // Convert buffer to base64 for sending to frontend
+    const base64Image = buffer.toString('base64');
+    const imageUrl = `data:image/png;base64,${base64Image}`;
+    
+    console.log('Generated image as base64');
     res.json({ imageUrl });
   } catch (error) {
     console.error('Error generating image:', error);
