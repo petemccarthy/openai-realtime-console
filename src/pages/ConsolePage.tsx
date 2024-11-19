@@ -8,6 +8,7 @@ import { WavRenderer } from '../utils/wav_renderer';
 import { Button } from '../components/button/Button';
 import { Toggle } from '../components/toggle/Toggle';
 import { Map } from '../components/Map';
+import { generatePostcardImage } from '../utils/replicate';
 import './ConsolePage.scss';
 
 /**
@@ -38,6 +39,18 @@ interface Coordinates {
     value: number;
     units: string;
   };
+}
+
+/**
+ * Type for result from get_postcard() function call
+ */
+interface Postcard {
+  to: string;
+  from: string;
+  message: string;
+  imageUrl?: string;
+  status?: 'generating' | 'complete' | 'error';
+  error?: string;
 }
 
 /**
@@ -120,6 +133,7 @@ export function ConsolePage() {
     lng: -122.418137,
   });
   const [marker, setMarker] = useState<Coordinates | null>(null);
+  const [postcard, setPostcard] = useState<Postcard | null>(null);
 
   /**
    * Utility for formatting the timing of logs
@@ -203,6 +217,7 @@ export function ConsolePage() {
       lng: -122.418137,
     });
     setMarker(null);
+    setPostcard(null);
 
     const client = clientRef.current;
     client.disconnect();
@@ -450,6 +465,77 @@ export function ConsolePage() {
         return json;
       }
     );
+    client.addTool(
+      {
+        name: 'get_postcard',
+        description: 'Creates a postcard with a message and generates an image based on the message.',
+        parameters: {
+          type: 'object',
+          properties: {
+            to: {
+              type: 'string',
+              description: 'Recipient of the postcard',
+            },
+            from: {
+              type: 'string',
+              description: 'Sender of the postcard',
+            },
+            message: {
+              type: 'string',
+              description: 'Message on the postcard',
+            },
+          },
+          required: ['to', 'from', 'message'],
+        },
+      },
+      async ({ to, from, message }: { [key: string]: any }) => {
+        try {
+          console.log('Starting postcard generation with:', { to, from, message });
+          
+          // Set postcard with loading state
+          const initialPostcard: Postcard = { to, from, message, status: 'generating' };
+          setPostcard(initialPostcard);
+          
+          // Generate an image based on the message
+          const imageUrl = await generatePostcardImage(message);
+          console.log('Generated image URL:', imageUrl);
+          
+          // Update the postcard state with the completed data
+          const updatedPostcard: Postcard = { 
+            to, 
+            from, 
+            message, 
+            imageUrl, 
+            status: 'complete' 
+          };
+          console.log('Updating postcard with:', updatedPostcard);
+          setPostcard(updatedPostcard);
+          
+          return { ok: true, to, from, message, imageUrl };
+        } catch (error: any) {
+          console.error('Error in get_postcard:', error);
+          
+          // Update postcard state with error
+          const errorPostcard: Postcard = { 
+            to, 
+            from, 
+            message, 
+            status: 'error', 
+            error: error.message || 'Failed to generate postcard' 
+          };
+          console.log('Setting error state:', errorPostcard);
+          setPostcard(errorPostcard);
+          
+          return { 
+            ok: false, 
+            error: error.message || 'Failed to generate postcard',
+            to,
+            from,
+            message 
+          };
+        }
+      }
+    );
 
     // handle realtime events from client + server for event logging
     client.on('realtime.event', (realtimeEvent: RealtimeEvent) => {
@@ -688,6 +774,56 @@ export function ConsolePage() {
           </div>
         </div>
         <div className="content-right">
+          <div className="content-block postcard">
+            <div className="content-block-title">get_postcard()</div>
+            <div className="content-block-title bottom">
+              {postcard ? (
+                <>
+                  To: {postcard.to}<br />
+                  From: {postcard.from}
+                </>
+              ) : (
+                'not yet created'
+              )}
+            </div>
+            <div className="content-block-body full">
+              {postcard && (
+                <div className="postcard-content">
+                  {(() => {
+                    console.log('Rendering postcard:', postcard);
+                    
+                    if (postcard.status === 'generating') {
+                      return <div className="generating-message">Generating postcard image...</div>;
+                    }
+                    
+                    if (postcard.status === 'error') {
+                      return <div className="error-message">{postcard.error}</div>;
+                    }
+                    
+                    return (
+                      <>
+                        {postcard.imageUrl && (
+                          <>
+                            {console.log('Rendering image with URL:', postcard.imageUrl)}
+                            <img 
+                              src={postcard.imageUrl} 
+                              alt="Postcard"
+                              onError={(e) => {
+                                console.error('Error loading image:', e);
+                                const img = e.target as HTMLImageElement;
+                                console.log('Image src that failed:', img.src);
+                              }}
+                            />
+                          </>
+                        )}
+                        <div className="message">{postcard.message}</div>
+                      </>
+                    );
+                  })()}
+                </div>
+              )}
+            </div>
+          </div>
           <div className="content-block map">
             <div className="content-block-title">get_weather()</div>
             <div className="content-block-title bottom">
