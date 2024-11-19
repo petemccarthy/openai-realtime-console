@@ -52,8 +52,11 @@ app.post('/api/generate-image', async (req, res) => {
 
     console.log('Generating image for prompt:', prompt);
 
+    // Create a vintage postcard style prompt
+    const enhancedPrompt = `A vintage style postcard of ${prompt}, with vibrant colors and nostalgic charm. The image should have a retro travel poster aesthetic with a classic postcard composition. High quality, detailed, cinematic lighting.`;
+
     const input = {
-      prompt,
+      prompt: enhancedPrompt,
       aspect_ratio: "16:9"
     };
 

@@ -45,9 +45,8 @@ interface Coordinates {
  * Type for result from get_postcard() function call
  */
 interface Postcard {
-  to: string;
-  from: string;
   message: string;
+  blurb?: string;
   imageUrl?: string;
   status?: 'generating' | 'complete' | 'error';
   error?: string;
@@ -468,32 +467,31 @@ export function ConsolePage() {
     client.addTool(
       {
         name: 'get_postcard',
-        description: 'Creates a postcard with a message and generates an image based on the message.',
+        description: 'Generates a vintage-style postcard image with a fun blurb about the location.',
         parameters: {
           type: 'object',
           properties: {
-            to: {
-              type: 'string',
-              description: 'Recipient of the postcard',
-            },
-            from: {
-              type: 'string',
-              description: 'Sender of the postcard',
-            },
             message: {
               type: 'string',
-              description: 'Message on the postcard',
-            },
+              description: 'Location or scene to generate a vintage postcard of',
+            }
           },
-          required: ['to', 'from', 'message'],
+          required: ['message'],
         },
       },
-      async ({ to, from, message }: { [key: string]: any }) => {
+      async ({ message }: { message: string }) => {
         try {
-          console.log('Starting postcard generation with:', { to, from, message });
+          console.log('Starting postcard generation with:', { message });
+          
+          // Generate a fun blurb about the location
+          const blurb = `Greetings from ${message}! Where adventure meets nostalgia in this picturesque destination.`;
           
           // Set postcard with loading state
-          const initialPostcard: Postcard = { to, from, message, status: 'generating' };
+          const initialPostcard: Postcard = { 
+            message,
+            blurb, 
+            status: 'generating' 
+          };
           setPostcard(initialPostcard);
           
           // Generate an image based on the message
@@ -502,24 +500,22 @@ export function ConsolePage() {
           
           // Update the postcard state with the completed data
           const updatedPostcard: Postcard = { 
-            to, 
-            from, 
-            message, 
+            message,
+            blurb,
             imageUrl, 
             status: 'complete' 
           };
           console.log('Updating postcard with:', updatedPostcard);
           setPostcard(updatedPostcard);
           
-          return { ok: true, to, from, message, imageUrl };
+          return { ok: true, message, blurb, imageUrl };
         } catch (error: any) {
           console.error('Error in get_postcard:', error);
           
           // Update postcard state with error
           const errorPostcard: Postcard = { 
-            to, 
-            from, 
-            message, 
+            message,
+            blurb: `Greetings from ${message}!`,
             status: 'error', 
             error: error.message || 'Failed to generate postcard' 
           };
@@ -529,9 +525,6 @@ export function ConsolePage() {
           return { 
             ok: false, 
             error: error.message || 'Failed to generate postcard',
-            to,
-            from,
-            message 
           };
         }
       }
@@ -779,8 +772,7 @@ export function ConsolePage() {
             <div className="content-block-title bottom">
               {postcard ? (
                 <>
-                  To: {postcard.to}<br />
-                  From: {postcard.from}
+                  Message: {postcard.message}
                 </>
               ) : (
                 'not yet created'
@@ -817,6 +809,7 @@ export function ConsolePage() {
                           </>
                         )}
                         <div className="message">{postcard.message}</div>
+                        <div className="blurb">{postcard.blurb}</div>
                       </>
                     );
                   })()}

@@ -196,6 +196,18 @@
   }
 
   .content-block.postcard {
+    .content-block-title.bottom {
+      .location {
+        font-weight: bold;
+        margin-bottom: 4px;
+      }
+      .blurb {
+        font-style: italic;
+        color: #666;
+        font-size: 0.9em;
+        line-height: 1.4;
+      }
+    }
     .postcard-content {
       display: flex;
       flex-direction: column;
@@ -213,26 +225,27 @@
         height: auto;
         border-radius: 4px;
         margin-bottom: 16px;
-      }
-
-      .message {
-        text-align: center;
-        font-size: 14px;
-        line-height: 1.5;
-        color: #333;
-        margin-top: 16px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
       }
 
       .generating-message {
         font-size: 14px;
         color: #666;
         margin: 16px 0;
+        text-align: center;
+        padding: 20px;
+        background: rgba(255, 255, 255, 0.8);
+        border-radius: 8px;
       }
 
       .error-message {
         font-size: 14px;
-        color: #ff4444;
+        color: #dc2626;
         margin: 16px 0;
+        text-align: center;
+        padding: 20px;
+        background: rgba(254, 226, 226, 0.8);
+        border-radius: 8px;
       }
     }
   }
