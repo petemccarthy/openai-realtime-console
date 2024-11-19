@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react';
 import './Embed.scss';
 
 export const EmbedPage: React.FC = () => {
