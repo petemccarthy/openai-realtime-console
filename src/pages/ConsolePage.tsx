@@ -636,14 +636,6 @@ export function ConsolePage() {
       <div className="content-main">
         <div className="content-logs">
           <div className="content-block events">
-            <div className="visualization">
-              <div className="visualization-entry client">
-                <canvas ref={clientCanvasRef} />
-              </div>
-              <div className="visualization-entry server">
-                <canvas ref={serverCanvasRef} />
-              </div>
-            </div>
             <div className="content-block-title">events</div>
             <div className="content-block-body" ref={eventsScrollRef}>
               {!realtimeEvents.length && `awaiting connection...`}
@@ -790,6 +782,14 @@ export function ConsolePage() {
                 onMouseUp={stopRecording}
               />
             )}
+            <div className="visualization">
+              <div className="visualization-entry client">
+                <canvas ref={clientCanvasRef} />
+              </div>
+              <div className="visualization-entry server">
+                <canvas ref={serverCanvasRef} />
+              </div>
+            </div>
             <div className="spacer" />
             <Button
               label={isConnected ? 'disconnect' : 'connect'}
@@ -889,7 +889,6 @@ export function ConsolePage() {
               {marker?.location || 'not yet retrieved'}
               {!!marker?.temperature && (
                 <>
-                  <br />
                   🌡️ {marker.temperature.value} {marker.temperature.units}
                 </>
               )}
