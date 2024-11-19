@@ -10,6 +10,7 @@ import { Toggle } from '../components/toggle/Toggle';
 import { Map } from '../components/Map';
 import { generatePostcardImage } from '../utils/replicate';
 import { supabase } from '../utils/supabase';
+import { uploadImageToStorage } from '../utils/storage';
 import './ConsolePage.scss';
 
 /**
@@ -499,18 +500,21 @@ export function ConsolePage() {
           setPostcard(initialPostcard);
           
           // Generate an image based on the message
-          const imageUrl = await generatePostcardImage(message);
-          console.log('Generated image URL:', imageUrl);
+          const replicateImageUrl = await generatePostcardImage(message);
+          console.log('Generated Replicate URL:', replicateImageUrl);
+
+          // Upload to Supabase Storage and get public URL
+          const storageImageUrl = await uploadImageToStorage(replicateImageUrl, message);
+          console.log('Uploaded to Supabase Storage:', storageImageUrl);
           
-          // Store the postcard in Supabase
+          // Store the postcard in Supabase Database
           const { data: storedPostcard, error: dbError } = await supabase
             .from('postcards')
             .insert([
               {
                 message,
-                image_url: imageUrl,
+                image_url: storageImageUrl,
                 status: 'draft',
-                // user_id will use the default UUID from the schema
               }
             ])
             .select()
@@ -524,7 +528,7 @@ export function ConsolePage() {
           const updatedPostcard: Postcard = { 
             message,
             blurb,
-            imageUrl, 
+            imageUrl: storageImageUrl, 
             status: 'complete' 
           };
           console.log('Updating postcard with:', updatedPostcard);
@@ -536,7 +540,7 @@ export function ConsolePage() {
             postcard: {
               message,
               blurb,
-              imageUrl,
+              imageUrl: storageImageUrl,
               status: 'complete'
             }
           };
@@ -827,18 +831,48 @@ export function ConsolePage() {
                     return (
                       <>
                         {postcard.imageUrl && (
-                          <>
-                            {console.log('Rendering image with URL:', postcard.imageUrl)}
+                          <div className="postcard-image-container" style={{ marginBottom: '1rem' }}>
                             <img 
                               src={postcard.imageUrl} 
-                              alt="Postcard"
+                              alt="Generated postcard"
+                              style={{ 
+                                maxWidth: '100%', 
+                                height: 'auto',
+                                border: '1px solid #ddd',
+                                borderRadius: '4px',
+                                display: 'block'
+                              }}
                               onError={(e) => {
                                 console.error('Error loading image:', e);
                                 const img = e.target as HTMLImageElement;
-                                console.log('Image src that failed:', img.src);
+                                console.log('Failed URL:', img.src);
+
+                                // Try different URL formats
+                                if (img.src.includes('/object/public/')) {
+                                  // Try storage/v1 format
+                                  const newUrl = img.src.replace('/object/public/', '/storage/v1/object/public/');
+                                  console.log('Trying alternative URL format:', newUrl);
+                                  img.src = newUrl;
+                                } else if (img.src.includes('/storage/v1/object/public/')) {
+                                  // Try signed URL
+                                  const bucketPath = img.src.split('/postcard_images/')[1];
+                                  if (bucketPath) {
+                                    console.log('Trying to get signed URL for:', bucketPath);
+                                    supabase.storage
+                                      .from('postcard_images')
+                                      .createSignedUrl(bucketPath, 60)
+                                      .then(({ data }) => {
+                                        if (data?.signedUrl) {
+                                          console.log('Got signed URL:', data.signedUrl);
+                                          img.src = data.signedUrl;
+                                        }
+                                      })
+                                      .catch(err => console.error('Failed to get signed URL:', err));
+                                  }
+                                }
                               }}
                             />
-                          </>
+                          </div>
                         )}
                         <div className="message">{postcard.message}</div>
                         <div className="blurb">{postcard.blurb}</div>
