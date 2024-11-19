@@ -9,6 +9,7 @@ import { Button } from '../components/button/Button';
 import { Toggle } from '../components/toggle/Toggle';
 import { Map } from '../components/Map';
 import { generatePostcardImage } from '../utils/replicate';
+import { supabase } from '../utils/supabase';
 import './ConsolePage.scss';
 
 /**
@@ -61,6 +62,9 @@ interface RealtimeEvent {
   count?: number;
   event: { [key: string]: any };
 }
+
+const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
+const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
 
 export function ConsolePage() {
   /**
@@ -498,6 +502,24 @@ export function ConsolePage() {
           const imageUrl = await generatePostcardImage(message);
           console.log('Generated image URL:', imageUrl);
           
+          // Store the postcard in Supabase
+          const { data: storedPostcard, error: dbError } = await supabase
+            .from('postcards')
+            .insert([
+              {
+                message,
+                image_url: imageUrl,
+                status: 'draft',
+                // user_id will use the default UUID from the schema
+              }
+            ])
+            .select()
+            .single();
+
+          if (dbError) {
+            throw new Error(`Failed to store postcard: ${dbError.message}`);
+          }
+          
           // Update the postcard state with the completed data
           const updatedPostcard: Postcard = { 
             message,
@@ -508,7 +530,16 @@ export function ConsolePage() {
           console.log('Updating postcard with:', updatedPostcard);
           setPostcard(updatedPostcard);
           
-          return { ok: true, message, blurb, imageUrl };
+          // Return in the format the AI expects
+          return {
+            success: true,
+            postcard: {
+              message,
+              blurb,
+              imageUrl,
+              status: 'complete'
+            }
+          };
         } catch (error: any) {
           console.error('Error in get_postcard:', error);
           
@@ -523,8 +554,9 @@ export function ConsolePage() {
           setPostcard(errorPostcard);
           
           return { 
-            ok: false, 
-            error: error.message || 'Failed to generate postcard',
+            success: false,
+            postcard: errorPostcard,
+            error: error.message || 'Failed to generate postcard'
           };
         }
       }
