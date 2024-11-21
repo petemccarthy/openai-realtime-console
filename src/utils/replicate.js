@@ -1,8 +1,9 @@
-import Replicate from 'replicate';
+// eslint-disable-next-line no-unused-vars
+const Replicate = require('replicate');
 
 const RELAY_SERVER = process.env.REACT_APP_LOCAL_RELAY_SERVER_URL || 'http://localhost:8081';
 
-export async function generatePostcardImage(prompt) {
+async function generatePostcardImage(prompt) {
   try {
     console.log('Sending request to generate image with prompt:', prompt);
     
@@ -48,3 +49,7 @@ export async function generatePostcardImage(prompt) {
     throw error;
   }
 }
+
+module.exports = {
+  generatePostcardImage
+};

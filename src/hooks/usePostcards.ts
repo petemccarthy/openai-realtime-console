@@ -18,7 +18,6 @@ export const usePostcards = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [postcards, setPostcards] = useState<Postcard[]>([]);
-  const [subscription, setSubscription] = useState<RealtimeChannel | null>(null);
 
   const getPostcards = useCallback(async () => {
     try {
@@ -60,18 +59,15 @@ export const usePostcards = () => {
           schema: 'public',
           table: 'postcards'
         },
-        async (payload) => {
-          console.log('Realtime update received:', payload);
-          
-          // Refresh the postcards list immediately
-          await getPostcards();
+        (payload) => {
+          console.log('Change received!', payload);
+          // Refresh postcards
+          getPostcards();
         }
       )
       .subscribe((status) => {
         console.log('Realtime subscription status:', status);
       });
-
-    setSubscription(channel);
 
     // Cleanup subscription on unmount
     return () => {

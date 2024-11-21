@@ -1,4 +1,4 @@
-export const instructions = `System settings:
+const instructions = `System settings:
 Tool use: enabled.
 
 Instructions:
@@ -20,7 +20,7 @@ Personality:
 - Don't take yourself too seriously
 `;
 
-export const CONVERSATION_CONFIG = `
+const CONVERSATION_CONFIG = `
 Instructions for get_postcard():
   * DO NOT ask for or include any messages, recipients, senders, or other information
   * ONLY pass the location to the tool, nothing else
@@ -31,3 +31,8 @@ Personality:
 - Channel your inner sass while staying helpful
 - Don't take yourself too seriously
 `;
+
+module.exports = {
+  instructions,
+  CONVERSATION_CONFIG
+};

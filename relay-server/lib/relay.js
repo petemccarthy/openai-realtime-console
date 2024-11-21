@@ -1,14 +1,20 @@
-import { WebSocketServer } from 'ws';
-import { RealtimeClient } from '@openai/realtime-api-beta';
+const { WebSocketServer } = require('ws');
 
-export class RealtimeRelay {
+class RealtimeRelay {
   constructor(apiKey) {
     this.apiKey = apiKey;
     this.sockets = new WeakMap();
     this.wss = null;
+    this.RealtimeClient = null;
   }
 
-  listen(port) {
+  async initialize() {
+    const { RealtimeClient } = await import('@openai/realtime-api-beta');
+    this.RealtimeClient = RealtimeClient;
+  }
+
+  async listen(port) {
+    await this.initialize();
     this.wss = new WebSocketServer({ port });
     this.wss.on('connection', this.connectionHandler.bind(this));
     this.log(`Listening on ws://localhost:${port}`);
@@ -32,7 +38,7 @@ export class RealtimeRelay {
 
     // Instantiate new client
     this.log(`Connecting with key "${this.apiKey.slice(0, 3)}..."`);
-    const client = new RealtimeClient({ apiKey: this.apiKey });
+    const client = new this.RealtimeClient({ apiKey: this.apiKey });
 
     // Relay: OpenAI Realtime API Event -> Browser Event
     client.realtime.on('server.*', (event) => {
@@ -82,3 +88,5 @@ export class RealtimeRelay {
     console.log(`[RealtimeRelay]`, ...args);
   }
 }
+
+module.exports = { RealtimeRelay };

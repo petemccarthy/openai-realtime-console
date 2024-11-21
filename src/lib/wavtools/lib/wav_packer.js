@@ -12,7 +12,7 @@
  * Utility class for assembling PCM16 "audio/wav" data
  * @class
  */
-export class WavPacker {
+class WavPacker {
   /**
    * Converts Float32Array of amplitude data to ArrayBuffer in Int16Array format
    * @param {Float32Array} float32Array
@@ -110,4 +110,6 @@ export class WavPacker {
   }
 }
 
-globalThis.WavPacker = WavPacker;
+module.exports = {
+  WavPacker
+};

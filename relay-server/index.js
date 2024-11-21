@@ -1,13 +1,9 @@
-import { RealtimeRelay } from './lib/relay.js';
-import express from 'express';
-import cors from 'cors';
-import Replicate from 'replicate';
-import dotenv from 'dotenv';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const { RealtimeRelay } = require('./lib/relay.js');
+const express = require('express');
+const cors = require('cors');
+const Replicate = require('replicate');
+const dotenv = require('dotenv');
+const path = require('path');
 
 // Load environment variables from .env file
 dotenv.config({ path: path.join(__dirname, '.env') });

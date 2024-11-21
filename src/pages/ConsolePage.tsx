@@ -72,9 +72,6 @@ interface GetPostcardParams {
   message: string;
 }
 
-const supabaseUrl = process.env.REACT_APP_SUPABASE_URL;
-const supabaseAnonKey = process.env.REACT_APP_SUPABASE_ANON_KEY;
-
 export function ConsolePage() {
   /**
    * Ask user for API Key
@@ -146,7 +143,6 @@ export function ConsolePage() {
   });
   const [marker, setMarker] = useState<Coordinates | null>(null);
   const [postcard, setPostcard] = useState<GeneratedPostcard | null>(null);
-  const [latestPostcard, setLatestPostcard] = useState<DisplayPostcard | null>(null);
 
   /**
    * Utility for formatting the timing of logs
@@ -613,14 +609,6 @@ export function ConsolePage() {
     };
   }, []);
 
-  const handlePostcardsChange = (postcards: DbPostcard[]) => {
-    if (postcards.length > 0) {
-      setLatestPostcard(postcards[0]);
-    } else {
-      setLatestPostcard(null);
-    }
-  };
-
   /**
    * Render the application
    */
@@ -649,7 +637,6 @@ export function ConsolePage() {
             <div className="content-block-title">Postcards</div>
             <div className="content-block-body">
               <PostcardList 
-                onPostcardsChange={handlePostcardsChange}
                 client={clientRef.current}
                 isConnected={isConnected}
               />
