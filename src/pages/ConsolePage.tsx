@@ -747,12 +747,6 @@ export function ConsolePage() {
                               '(truncated)'}
                           </div>
                         )}
-                      {conversationItem.formatted.file && (
-                        <audio
-                          src={conversationItem.formatted.file.url}
-                          controls
-                        />
-                      )}
                     </div>
                   </div>
                 );
