@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { usePostcards, Postcard } from '../hooks/usePostcards';
 import { RealtimeClient } from '@openai/realtime-api-beta';
+import { useUser } from "@clerk/clerk-react";
 
 interface PostcardListProps {
   onPostcardsChange?: (postcards: Postcard[]) => void;
@@ -23,6 +24,7 @@ export const PostcardList: React.FC<PostcardListProps> = ({
 }) => {
   const { loading, error, postcards } = usePostcards();
   const [geocodingError, setGeocodingError] = useState<string | null>(null);
+  const { user } = useUser();
 
   // Notify parent of postcard changes
   React.useEffect(() => {
@@ -91,24 +93,39 @@ export const PostcardList: React.FC<PostcardListProps> = ({
     <div className="content-block postcards">
       <div className="content-block-body">
         <div className="postcards-grid">
-          {postcards.map((postcard, index) => (
-            <div
-              key={postcard.id}
-              className="postcard-item"
-              onClick={() => handlePostcardClick(postcard)}
-              style={{ cursor: isConnected ? 'pointer' : 'not-allowed' }}
-            >
-              {postcard.image_url && (
-                <img src={postcard.image_url} alt={`Postcard from ${postcard.location}`} />
-              )}
-              <div className="postcard-info">
-                <div className="location">{postcard.location}</div>
+          {postcards.map((postcard) => {
+            const isCurrentUser = user?.id === postcard.user_id;
+            
+            return (
+              <div
+                key={postcard.id}
+                className="postcard-item"
+                onClick={() => handlePostcardClick(postcard)}
+                style={{ cursor: isConnected ? 'pointer' : 'not-allowed' }}
+              >
+                <div className="postcard-header">
+                  {isCurrentUser && (
+                    <img 
+                      src={user.imageUrl} 
+                      alt="Your avatar"
+                      className="user-avatar"
+                    />
+                  )}
+                  <div className="location">{postcard.location}</div>
+                </div>
+                {postcard.image_url && (
+                  <img 
+                    src={postcard.image_url} 
+                    alt={`Postcard from ${postcard.location}`}
+                    className="postcard-image" 
+                  />
+                )}
                 {postcard.blurb && (
                   <div className="blurb">{postcard.blurb}</div>
                 )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
       {geocodingError && (

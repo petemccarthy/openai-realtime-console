@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@clerk/clerk-react';
 import './SplashPage.scss';
@@ -9,14 +9,25 @@ export const SplashPage: React.FC<SplashPageProps> = () => {
   const navigate = useNavigate();
   const { isSignedIn } = useAuth();
 
+  // Automatically redirect based on auth status
+  useEffect(() => {
+    if (isSignedIn) {
+      navigate('/postcards');
+    }
+  }, [isSignedIn, navigate]);
+
   const handleStartCreating = () => {
     if (isSignedIn) {
       navigate('/postcards');
     } else {
-      // This will redirect to Clerk's sign-in/sign-up page
-      window.location.href = '/sign-up';
+      navigate('/sign-up');
     }
   };
+
+  // Don't render splash page content if user is signed in
+  if (isSignedIn) {
+    return null;
+  }
 
   return (
     <div data-component="SplashPage">
