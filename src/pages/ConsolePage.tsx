@@ -619,27 +619,9 @@ export function ConsolePage() {
         <h1>AI Postcard Creator</h1>
         <UserButton afterSignOutUrl="/" />
       </header>
-      <div className="content-top">
-        <div className="content-title">
-          <img src="/openai-logomark.svg" alt="OpenAI Logo" />
-          <span>realtime console</span>
-        </div>
-        <div className="content-api-key">
-          {!LOCAL_RELAY_SERVER_URL && (
-            <Button
-              icon={Edit}
-              iconPosition="end"
-              buttonStyle="flush"
-              label={`api key: ${apiKey.slice(0, 3)}...`}
-              onClick={() => resetAPIKey()}
-            />
-          )}
-        </div>
-      </div>
       <div className="content-main">
         <div className="content-logs">
           <div className="content-block">
-            <div className="content-block-title">Postcards</div>
             <div className="content-block-body">
               <PostcardList 
                 client={clientRef.current}
@@ -647,7 +629,7 @@ export function ConsolePage() {
               />
             </div>
           </div>
-          <div className="content-block events">
+          <div className="content-block events" style={{ display: 'none' }}>
             <div className="content-block-title">events</div>
             <div className="content-block-body" ref={eventsScrollRef}>
               {!realtimeEvents.length && `awaiting connection...`}
@@ -816,7 +798,6 @@ export function ConsolePage() {
         </div>
         <div className="content-right">
           <div className="content-block postcard">
-            <div className="content-block-title">get_postcard()</div>
             <div className="content-block-body">
               <div className="postcard-preview">
                 {postcard ? (

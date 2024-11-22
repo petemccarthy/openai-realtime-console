@@ -31,23 +31,6 @@
     flex-grow: 1;
   }
 
-  .content-top {
-    display: flex;
-    align-items: center;
-    padding: 8px 16px;
-    min-height: 40px;
-    .content-title {
-      flex-grow: 1;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      img {
-        width: 24px;
-        height: 24px;
-      }
-    }
-  }
-
   .content-main {
     flex-grow: 1;
     flex-shrink: 1 !important;

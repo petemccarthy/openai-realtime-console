@@ -84,17 +84,11 @@ export const PostcardList: React.FC<PostcardListProps> = ({
     onPostcardClick?.(postcard);
   };
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
+  if (loading) return null;
+  if (error) return null;
 
   return (
     <div className="content-block postcards">
-      <div className="content-block-title">postcards</div>
-      {geocodingError && (
-        <div className="error-message" style={{ margin: '8px', color: 'red' }}>
-          {geocodingError}
-        </div>
-      )}
       <div className="content-block-body">
         <div className="postcards-grid">
           {postcards.map((postcard, index) => (
@@ -113,15 +107,15 @@ export const PostcardList: React.FC<PostcardListProps> = ({
                   <div className="blurb">{postcard.blurb}</div>
                 )}
               </div>
-              {!isConnected && (
-                <div className="connection-warning">
-                  Connect to get weather info
-                </div>
-              )}
             </div>
           ))}
         </div>
       </div>
+      {geocodingError && (
+        <div className="error-message" style={{ margin: '8px', color: 'red' }}>
+          {geocodingError}
+        </div>
+      )}
     </div>
   );
 };
