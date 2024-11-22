@@ -1,13 +1,14 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '../utils/supabase';
 import { RealtimeChannel } from '@supabase/supabase-js';
+import { useAuth } from '@clerk/clerk-react';
 
 export interface Postcard {
   id: string;
   created_at: string;
   updated_at: string;
   user_id: string;
-  message: string;
+  location: string;
   image_url: string;
   status: 'generating' | 'complete' | 'error';
   error?: string;
@@ -18,6 +19,7 @@ export const usePostcards = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [postcards, setPostcards] = useState<Postcard[]>([]);
+  const { userId } = useAuth();
 
   const getPostcards = useCallback(async () => {
     try {
@@ -78,18 +80,23 @@ export const usePostcards = () => {
     };
   }, [getPostcards]);
 
-  const createPostcard = useCallback(async ({ message, image_url }: Pick<Postcard, 'message' | 'image_url'>) => {
+  const createPostcard = useCallback(async ({ location, image_url }: Pick<Postcard, 'location' | 'image_url'>) => {
     try {
       setLoading(true);
       setError(null);
+
+      if (!userId) {
+        throw new Error('User must be authenticated to create a postcard');
+      }
 
       const { data, error } = await supabase
         .from('postcards')
         .insert([
           {
-            message,
+            location,
             image_url,
-            status: 'draft'
+            status: 'draft',
+            user_id: userId
           }
         ])
         .select()
@@ -105,7 +112,7 @@ export const usePostcards = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [userId]);
 
   const updatePostcard = useCallback(async (id: string, updates: Partial<Omit<Postcard, 'id' | 'created_at' | 'updated_at' | 'user_id'>>) => {
     try {

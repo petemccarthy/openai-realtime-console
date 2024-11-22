@@ -860,8 +860,8 @@ create table postcards (
   id uuid default gen_random_uuid() primary key,
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   updated_at timestamp with time zone default timezone('utc'::text, now()) not null,
-  user_id uuid default '00000000-0000-0000-0000-000000000000'::uuid,
-  message text,
+  user_id text,  -- Changed from uuid to text to support Clerk's user ID format
+  location text,
   image_url text,
   status text default 'draft' check (status in ('draft'))
 );

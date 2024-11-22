@@ -66,9 +66,9 @@ export const PostcardList: React.FC<PostcardListProps> = ({
     setGeocodingError(null);
     
     // Get coordinates for the location
-    const coordinates = await getCoordinates(postcard.message);
+    const coordinates = await getCoordinates(postcard.location);
     if (!coordinates) {
-      setGeocodingError(`Could not find coordinates for ${postcard.message}`);
+      setGeocodingError(`Could not find coordinates for ${postcard.location}`);
       return;
     }
 
@@ -76,7 +76,7 @@ export const PostcardList: React.FC<PostcardListProps> = ({
     client.sendUserMessageContent([
       {
         type: 'input_text',
-        text: `get_weather(lat: ${coordinates.lat}, lng: ${coordinates.lon}, location: "${postcard.message}")`,
+        text: `get_weather(lat: ${coordinates.lat}, lng: ${coordinates.lon}, location: "${postcard.location}")`,
       },
     ]);
     
@@ -93,16 +93,16 @@ export const PostcardList: React.FC<PostcardListProps> = ({
         <div className="postcards-grid">
           {postcards.map((postcard, index) => (
             <div
-              key={index}
+              key={postcard.id}
               className="postcard-item"
               onClick={() => handlePostcardClick(postcard)}
               style={{ cursor: isConnected ? 'pointer' : 'not-allowed' }}
             >
               {postcard.image_url && (
-                <img src={postcard.image_url} alt={postcard.message} />
+                <img src={postcard.image_url} alt={`Postcard from ${postcard.location}`} />
               )}
               <div className="postcard-info">
-                <div className="location">{postcard.message}</div>
+                <div className="location">{postcard.location}</div>
                 {postcard.blurb && (
                   <div className="blurb">{postcard.blurb}</div>
                 )}

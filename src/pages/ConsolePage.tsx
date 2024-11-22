@@ -13,7 +13,7 @@ import { supabase } from '../utils/supabase';
 import { uploadImageToStorage } from '../utils/storage';
 import { PostcardList } from '../components/PostcardList';
 import { Postcard as DbPostcard } from '../hooks/usePostcards';
-import { UserButton } from "@clerk/clerk-react";
+import { UserButton, useAuth } from "@clerk/clerk-react";
 import './ConsolePage.scss';
 
 /**
@@ -74,6 +74,7 @@ interface GetPostcardParams {
 }
 
 export function ConsolePage() {
+  const { userId } = useAuth();
   /**
    * Ask user for API Key
    * If we're using the local relay server, we don't need this
@@ -496,9 +497,10 @@ export function ConsolePage() {
           
           // Set postcard with loading state
           const initialPostcard: GeneratedPostcard = { 
+            blurb,
             message,
-            blurb, 
-            status: 'generating' 
+            status: 'generating',
+            image_url: undefined
           };
           setPostcard(initialPostcard);
           
@@ -518,7 +520,11 @@ export function ConsolePage() {
           const { error: dbError } = await supabase
             .from('postcards')
             .insert([
-              { message, image_url: result.storageImageUrl }
+              { 
+                location: message, 
+                image_url: result.storageImageUrl,
+                user_id: userId 
+              }
             ]);
           
           if (dbError) {
@@ -527,8 +533,8 @@ export function ConsolePage() {
           
           // Update the postcard state with the completed data
           const updatedPostcard: GeneratedPostcard = { 
-            message,
             blurb,
+            message,
             image_url: result.storageImageUrl, 
             status: 'complete' 
           };
@@ -550,8 +556,8 @@ export function ConsolePage() {
           
           // Update postcard state with error
           const errorPostcard: GeneratedPostcard = { 
-            message,
             blurb: `Greetings from ${message}!`,
+            message,
             status: 'error', 
             error: error.message || 'Failed to generate postcard' 
           };
