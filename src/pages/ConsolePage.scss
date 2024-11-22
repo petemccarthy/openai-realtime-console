@@ -12,6 +12,21 @@
     flex-shrink: 0;
   }
 
+  .console-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem;
+    border-bottom: 1px solid #eaeaea;
+    margin-bottom: 1rem;
+
+    h1 {
+      font-size: 1.5rem;
+      font-weight: 500;
+      margin: 0;
+    }
+  }
+
   .spacer {
     flex-grow: 1;
   }

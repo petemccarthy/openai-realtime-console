@@ -13,6 +13,7 @@ import { supabase } from '../utils/supabase';
 import { uploadImageToStorage } from '../utils/storage';
 import { PostcardList } from '../components/PostcardList';
 import { Postcard as DbPostcard } from '../hooks/usePostcards';
+import { UserButton } from "@clerk/clerk-react";
 import './ConsolePage.scss';
 
 /**
@@ -614,6 +615,10 @@ export function ConsolePage() {
    */
   return (
     <div data-component="ConsolePage">
+      <header className="console-header">
+        <h1>AI Postcard Creator</h1>
+        <UserButton afterSignOutUrl="/" />
+      </header>
       <div className="content-top">
         <div className="content-title">
           <img src="/openai-logomark.svg" alt="OpenAI Logo" />
